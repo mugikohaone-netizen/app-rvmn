@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>おうちのお仕事 収支メモ</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #fdf8f2; --surface: #ffffff; --surface2: #fef3e2;
+  --green: #2d9a6b; --gl: #e8f7f0; --red: #e05252; --rl: #fdeaea;
+  --amber: #d97706; --al: #fef3c7; --blue: #3b82f6; --bl: #eff6ff;
+  --ink: #1c1a17; --muted: #7c7167; --border: #e8dfd0; --radius: 16px;
+  --shadow: 0 2px 12px rgba(0,0,0,0.08);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+body { font-family: 'Noto Sans JP', sans-serif; background: var(--bg); color: var(--ink); min-height: 100vh; padding-bottom: 80px; }
+
+.app-header { background: var(--green); color: white; padding: 14px 16px 10px; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 16px rgba(45,154,107,0.3); }
+.app-header h1 { font-family: 'Nunito', sans-serif; font-size: 1.1rem; font-weight: 900; }
+.app-header .sub { font-size: 0.7rem; opacity: 0.85; margin-top: 2px; display: flex; align-items: center; gap: 8px; }
+.sync-badge { font-size: 0.65rem; padding: 2px 8px; border-radius: 20px; font-weight: 700; }
+.sync-ok { background: rgba(255,255,255,0.25); }
+.sync-err { background: rgba(255,100,100,0.4); }
+.sync-ing { background: rgba(255,255,255,0.15); }
+.month-nav { display: flex; align-items: center; justify-content: space-between; margin-top: 10px; background: rgba(255,255,255,0.18); border-radius: 12px; padding: 6px 10px; }
+.month-nav button { background: none; border: none; color: white; font-size: 1.4rem; cursor: pointer; padding: 2px 10px; }
+.month-nav .ml { font-family: 'Nunito', sans-serif; font-size: 1rem; font-weight: 800; }
+
+.fuyou-card { margin: 12px 14px 10px; background: white; border-radius: var(--radius); padding: 16px; box-shadow: var(--shadow); border: 2px solid transparent; transition: border-color 0.3s; }
+.fuyou-card.safe { border-color: var(--green); }
+.fuyou-card.warning { border-color: var(--amber); }
+.fuyou-card.danger { border-color: var(--red); }
+
+.stats-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin: 0 14px 10px; }
+.stat-card { background: white; border-radius: 12px; padding: 11px 8px; box-shadow: var(--shadow); text-align: center; }
+.stat-lbl { font-size: 0.65rem; color: var(--muted); font-weight: 700; margin-bottom: 3px; }
+.stat-val { font-family: 'Nunito', sans-serif; font-size: 1rem; font-weight: 900; }
+
+.slbl { font-size: 0.72rem; font-weight: 700; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; padding: 0 18px; margin-bottom: 6px; }
+
+.entry-card { margin: 0 14px 10px; background: white; border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; }
+.type-tabs { display: grid; grid-template-columns: 1fr 1fr 1fr; }
+.type-tab { padding: 12px 6px; text-align: center; cursor: pointer; font-size: 0.72rem; font-weight: 700; border-bottom: 3px solid transparent; color: var(--muted); transition: all 0.15s; }
+.type-tab .ti { font-size: 1.1rem; display: block; margin-bottom: 2px; }
+.type-tab.ai { color: var(--green); border-bottom-color: var(--green); background: var(--gl); }
+.type-tab.ac { color: var(--blue); border-bottom-color: var(--blue); background: var(--bl); }
+.type-tab.ae { color: var(--amber); border-bottom-color: var(--amber); background: var(--al); }
+
+.entry-body { padding: 14px; }
+.hint-box { border-radius: 10px; padding: 9px 12px; font-size: 0.75rem; margin-bottom: 12px; font-weight: 500; line-height: 1.5; }
+.hi { background: var(--gl); color: var(--green); }
+.hc { background: var(--bl); color: #1d4ed8; }
+.he { background: var(--al); color: var(--amber); }
+
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+.chip { padding: 6px 11px; border-radius: 20px; font-size: 0.76rem; font-weight: 600; cursor: pointer; background: #f5f0e8; color: var(--ink); border: 2px solid transparent; transition: all 0.15s; }
+
+.receipt-area { margin-bottom: 12px; }
+.receipt-lbl { font-size: 0.72rem; color: var(--muted); font-weight: 700; margin-bottom: 6px; }
+.receipt-btns { display: flex; gap: 8px; }
+.rcam { flex: 1; padding: 10px; border: 2px dashed var(--border); border-radius: 10px; background: var(--bg); cursor: pointer; font-size: 0.78rem; font-weight: 600; color: var(--muted); text-align: center; }
+input[type=file] { display: none; }
+.rpreview { position: relative; margin-top: 8px; }
+.rpreview img { width: 100%; max-height: 140px; object-fit: cover; border-radius: 10px; border: 2px solid var(--border); }
+.rdel { position: absolute; top: 6px; right: 6px; background: rgba(0,0,0,0.6); color: white; border: none; border-radius: 20px; padding: 3px 8px; font-size: 0.72rem; cursor: pointer; }
+
+.flabel { font-size: 0.72rem; color: var(--muted); font-weight: 700; display: block; margin-bottom: 4px; }
+.finput { width: 100%; border: 2px solid var(--border); border-radius: 10px; padding: 8px 10px; font-size: 0.88rem; font-family: inherit; background: var(--bg); color: var(--ink); outline: none; margin-bottom: 10px; }
+.finput:focus { border-color: var(--green); }
+.amtinput { font-family: 'Nunito', sans-serif; font-size: 1.5rem; font-weight: 900; border-radius: 12px; padding: 9px 14px; }
+.addbtn { width: 100%; padding: 13px; border: none; border-radius: 12px; font-family: 'Nunito', sans-serif; font-size: 1rem; font-weight: 900; cursor: pointer; color: white; transition: all 0.15s; }
+.addbtn:active { transform: scale(0.97); }
+
+.hist-empty { background: white; border-radius: var(--radius); padding: 28px; text-align: center; color: var(--muted); font-size: 0.85rem; box-shadow: var(--shadow); margin: 0 14px; }
+.hist-item { background: white; border-radius: 12px; padding: 12px 14px; margin: 0 14px 8px; display: flex; align-items: center; gap: 10px; box-shadow: 0 1px 6px rgba(0,0,0,0.06); }
+.hicon { width: 38px; height: 38px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1rem; flex-shrink: 0; }
+.hinfo { flex: 1; min-width: 0; }
+.hname { font-size: 0.85rem; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hmeta { font-size: 0.7rem; color: var(--muted); margin-top: 1px; }
+.hamt { font-family: 'Nunito', sans-serif; font-size: 0.98rem; font-weight: 900; white-space: nowrap; }
+.hdel { background: none; border: none; cursor: pointer; color: #ccc; font-size: 1rem; padding: 4px; }
+
+.tax-guide { margin: 0 14px 12px; }
+.tcard { background: white; border-radius: var(--radius); padding: 16px; box-shadow: var(--shadow); margin-bottom: 10px; }
+.tcard h3 { font-size: 0.9rem; font-weight: 700; margin-bottom: 12px; }
+.tsum { background: var(--gl); border-radius: 12px; padding: 14px; margin-bottom: 10px; }
+.trow { display: flex; justify-content: space-between; font-size: 0.82rem; padding: 5px 0; border-bottom: 1px solid rgba(45,154,107,0.15); }
+.trow:last-child { border-bottom: none; font-weight: 700; }
+.tval { font-family: 'Nunito', sans-serif; font-weight: 700; color: var(--green); }
+.frow { display: flex; gap: 8px; margin-bottom: 8px; border-radius: 10px; overflow: hidden; border: 1px solid var(--border); }
+.fkey { background: #f5f0e8; padding: 10px 12px; font-size: 0.75rem; font-weight: 700; color: var(--muted); min-width: 110px; display: flex; align-items: center; }
+.fval { padding: 10px 12px; font-size: 0.82rem; flex: 1; line-height: 1.5; }
+.tstep { display: flex; gap: 12px; margin-bottom: 12px; align-items: flex-start; }
+.snum { width: 28px; height: 28px; border-radius: 50%; background: var(--green); color: white; font-family: 'Nunito', sans-serif; font-weight: 900; font-size: 0.85rem; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.sbody { flex: 1; font-size: 0.83rem; line-height: 1.6; }
+.sbody strong { display: block; margin-bottom: 2px; }
+.sbody span { color: var(--muted); font-size: 0.78rem; }
+.twarn { background: var(--al); border-radius: 10px; padding: 10px 12px; font-size: 0.78rem; color: var(--amber); font-weight: 600; margin-top: 8px; line-height: 1.6; }
+
+.settings-card { margin: 14px 14px 10px; background: white; border-radius: var(--radius); padding: 18px; box-shadow: var(--shadow); }
+.settings-card h3 { font-size: 0.9rem; font-weight: 700; margin-bottom: 12px; }
+.srow { display: flex; justify-content: space-between; align-items: center; padding: 11px 0; border-bottom: 1px solid var(--border); font-size: 0.85rem; }
+.srow:last-child { border-bottom: none; }
+.sinput { border: 2px solid var(--border); border-radius: 8px; padding: 6px 10px; font-size: 0.85rem; width: 150px; text-align: right; font-family: inherit; outline: none; }
+.obtn { width: 100%; padding: 12px; border-radius: 12px; border: 2px solid var(--border); background: white; font-size: 0.85rem; font-weight: 700; font-family: inherit; cursor: pointer; margin-bottom: 8px; }
+.obtn.danger { border-color: var(--red); color: var(--red); }
+
+.modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 200; align-items: flex-end; }
+.modal-overlay.open { display: flex; }
+.modal-sheet { background: white; border-radius: 24px 24px 0 0; width: 100%; max-height: 88vh; overflow-y: auto; padding: 20px 18px 40px; }
+.mhandle { width: 40px; height: 4px; background: #ddd; border-radius: 99px; margin: 0 auto 16px; }
+.mtitle { font-family: 'Nunito', sans-serif; font-size: 1.15rem; font-weight: 900; margin-bottom: 4px; }
+.msub { font-size: 0.78rem; color: var(--muted); margin-bottom: 16px; }
+.rrow { display: flex; justify-content: space-between; padding: 11px 0; border-bottom: 1px solid var(--border); font-size: 0.88rem; }
+.rrow:last-child { border-bottom: none; }
+.rkey { color: var(--muted); }
+.rval { font-family: 'Nunito', sans-serif; font-weight: 700; }
+.rhl { background: var(--gl); border-radius: 10px; padding: 13px 12px; margin: 6px 0; display: flex; justify-content: space-between; }
+.rdng { background: var(--rl); border-radius: 10px; padding: 13px 12px; margin: 6px 0; display: flex; justify-content: space-between; }
+.rwarn { background: var(--al); border-radius: 10px; padding: 11px 13px; font-size: 0.78rem; color: var(--amber); font-weight: 600; margin: 10px 0; line-height: 1.6; }
+.pbtn { width: 100%; padding: 14px; background: var(--ink); color: white; border: none; border-radius: 12px; font-family: 'Nunito', sans-serif; font-size: 1rem; font-weight: 900; cursor: pointer; margin-top: 14px; }
+
+.bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: white; border-top: 1px solid var(--border); display: grid; grid-template-columns: 1fr 1.3fr 1fr 1fr; z-index: 100; box-shadow: 0 -4px 20px rgba(0,0,0,0.08); }
+.nav-item { padding: 10px 6px; text-align: center; cursor: pointer; font-size: 0.63rem; color: var(--muted); font-weight: 700; transition: color 0.15s; }
+.nav-item.active { color: var(--green); }
+.nav-icon { font-size: 1.2rem; display: block; margin-bottom: 1px; }
+.nav-report { padding: 6px 8px; }
+.nav-report-btn { background: var(--green); color: white; border: none; border-radius: 12px; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; font-size: 0.63rem; font-weight: 900; font-family: 'Nunito', sans-serif; gap: 1px; }
+
+.view { display: none; }
+.view.active { display: block; }
+
+.gauge-track { height: 10px; background: #f0ebe3; border-radius: 99px; overflow: hidden; margin-bottom: 5px; }
+.gauge-fill { height: 100%; border-radius: 99px; transition: width 0.5s; }
+</style>
+<link rel="apple-touch-icon" href="./icon.png">
+</head>
+<body>
+
+<div class="app-header">
+  <div style="display:flex;justify-content:space-between;align-items:center">
+    <div>
+      <h1>🏡 おうちのお仕事 収支メモ</h1>
+      <div class="sub">
+        扶養を守りながら、かしこく記録
+        <span class="sync-badge sync-ok" id="syncBadge">☁️ 同期済み</span>
+      </div>
+    </div>
+  </div>
+  <div class="month-nav">
+    <button onclick="changeMonth(-1)">‹</button>
+    <div class="ml" id="monthLabel"></div>
+    <button onclick="changeMonth(1)">›</button>
+  </div>
+</div>
+
+<!-- HOME -->
+<div class="view active" id="view-home">
+  <div class="fuyou-card" id="fuyouCard">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
+      <div style="font-size:0.72rem;font-weight:700;color:var(--muted)">🛡️ 今月の扶養チェック</div>
+      <div id="fuyouBadge" style="font-size:0.7rem;font-weight:700;padding:3px 10px;border-radius:20px"></div>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:8px">
+      <div>
+        <div style="font-size:0.68rem;color:var(--muted);margin-bottom:2px">判定用所得（売上 − 仕入れ）</div>
+        <div id="fuyouAmt" style="font-family:'Nunito',sans-serif;font-size:1.9rem;font-weight:900;line-height:1"></div>
+      </div>
+      <div style="font-size:0.72rem;color:var(--muted);text-align:right"><div>上限</div><strong>¥108,333</strong><div>（130万÷12）</div></div>
+    </div>
+    <div class="gauge-track"><div class="gauge-fill" id="gaugeFill" style="width:0%"></div></div>
+    <div id="gaugeNote" style="font-size:0.72rem;color:var(--muted)"></div>
+  </div>
+
+  <div class="stats-row">
+    <div class="stat-card"><div class="stat-lbl">💰 売上</div><div class="stat-val" id="si" style="color:var(--green)">¥0</div></div>
+    <div class="stat-card"><div class="stat-lbl">📦 仕入れ</div><div class="stat-val" id="sc" style="color:var(--blue)">¥0</div></div>
+    <div class="stat-card"><div class="stat-lbl">🚗 経費</div><div class="stat-val" id="se" style="color:var(--amber)">¥0</div></div>
+  </div>
+
+  <div class="slbl">記録を追加</div>
+  <div class="entry-card">
+    <div class="type-tabs">
+      <div class="type-tab ai" id="tt-income" onclick="setType('income')"><span class="ti">💰</span>売上</div>
+      <div class="type-tab" id="tt-cogs" onclick="setType('cogs')"><span class="ti">📦</span>仕入れ</div>
+      <div class="type-tab" id="tt-expense" onclick="setType('expense')"><span class="ti">🚗</span>経費</div>
+    </div>
+    <div class="entry-body">
+      <div class="hint-box hi" id="hintBox"><strong>売上</strong>：野菜・わたあめ・お手伝いなど、お客さんからもらったお金</div>
+      <div class="chips" id="presetChips"></div>
+      <div class="receipt-area">
+        <div class="receipt-lbl">📷 レシート（任意）</div>
+        <div class="receipt-btns">
+          <label class="rcam">📷 撮影<input type="file" accept="image/*" capture="environment" onchange="handleReceipt(event)"></label>
+          <label class="rcam">🖼️ 選択<input type="file" accept="image/*" onchange="handleReceipt(event)"></label>
+        </div>
+        <div class="rpreview" id="rpreview" style="display:none">
+          <img id="rimg" src="" alt="">
+          <button class="rdel" onclick="clearReceipt()">✕</button>
+        </div>
+      </div>
+      <label class="flabel">日付</label>
+      <input class="finput" type="date" id="entryDate">
+      <label class="flabel">金額（円）</label>
+      <input class="finput amtinput" type="number" inputmode="numeric" id="entryAmount" placeholder="0">
+      <input class="finput" type="text" id="entryNote" placeholder="メモ（任意）">
+      <button class="addbtn" id="btnAdd" style="background:var(--green)" onclick="addEntry()">💰 売上を記録する</button>
+    </div>
+  </div>
+
+  <div class="slbl">今月の記録</div>
+  <div id="historyList"></div>
+</div>
+
+<!-- TAX -->
+<div class="view" id="view-tax">
+  <div class="tax-guide">
+    <div class="tcard">
+      <h3>📊 今年の集計</h3>
+      <div class="tsum">
+        <div class="trow"><span>売上合計（A）</span><span class="tval" id="ts-a">¥0</span></div>
+        <div class="trow"><span>仕入れ合計（B）</span><span class="tval" id="ts-b">¥0</span></div>
+        <div class="trow"><span>経費合計（C）</span><span class="tval" id="ts-c">¥0</span></div>
+        <div class="trow"><span>🔑 事業所得（A−B−C）</span><span class="tval" id="ts-p">¥0</span></div>
+      </div>
+    </div>
+    <div class="tcard">
+      <h3>📝 確定申告 — どこに何を書く？</h3>
+      <div class="frow"><div class="fkey">売上金額</div><div class="fval">「収入金額」欄 → <strong>A の合計</strong>をそのまま記入</div></div>
+      <div class="frow"><div class="fkey">売上原価</div><div class="fval">「売上原価」欄 → <strong>B（仕入れ合計）</strong>を記入</div></div>
+      <div class="frow"><div class="fkey">経費各科目</div><div class="fval">「経費」欄 → <strong>C</strong>を科目別に記入<br>例：ガソリン→車両費</div></div>
+      <div class="frow"><div class="fkey">事業所得</div><div class="fval">A−B−C の結果 = 「所得金額」欄に記入</div></div>
+    </div>
+    <div class="tcard">
+      <h3>🗓️ 申告の流れ</h3>
+      <div class="tstep"><div class="snum">1</div><div class="sbody"><strong>1〜12月の収支を集計</strong><span>月次レポートを全月分印刷するとラクです</span></div></div>
+      <div class="tstep"><div class="snum">2</div><div class="sbody"><strong>確定申告書Bを準備</strong><span>国税庁「確定申告書等作成コーナー」がおすすめ</span></div></div>
+      <div class="tstep"><div class="snum">3</div><div class="sbody"><strong>2月16日〜3月15日に提出</strong><span>e-Tax（スマホ）or 税務署へ持参</span></div></div>
+      <div class="twarn">⚠️ 扶養の認定基準は健保組合ごとに異なります。パパさんの職場の健保に必ず確認を。</div>
+    </div>
+  </div>
+</div>
+
+<!-- SETTINGS -->
+<div class="view" id="view-settings">
+  <div class="settings-card">
+    <h3>⚙️ 基本設定</h3>
+    <div class="srow"><span>氏名</span><input class="sinput" type="text" id="sName" placeholder="山田 花子" onchange="saveSettings()"></div>
+    <div class="srow"><span>パパの会社名</span><input class="sinput" type="text" id="sCompany" placeholder="○○株式会社" onchange="saveSettings()"></div>
+    <div class="srow"><span>扶養上限（月額）</span><input class="sinput" type="number" id="sLimit" value="108333" onchange="saveSettings()"></div>
+  </div>
+  <div class="settings-card">
+    <h3>☁️ クラウド同期</h3>
+    <div style="font-size:0.8rem;color:var(--muted);margin-bottom:12px;line-height:1.6">データはGoogleスプレッドシートに自動保存されます。スマホを変えても消えません！</div>
+    <button class="obtn" onclick="syncToCloud()">☁️ 今すぐ同期する</button>
+    <button class="obtn" onclick="loadFromCloud()">📥 クラウドから読み込む</button>
+  </div>
+  <div class="settings-card">
+    <h3>📤 データ管理</h3>
+    <button class="obtn" onclick="exportCSV()">📊 今月のCSVを出力</button>
+    <button class="obtn danger" onclick="clearAll()">🗑️ 全データを削除</button>
+  </div>
+</div>
+
+<!-- REPORT MODAL -->
+<div class="modal-overlay" id="reportModal" onclick="closeModal(event,'reportModal')">
+  <div class="modal-sheet">
+    <div class="mhandle"></div>
+    <div class="mtitle" id="rptTitle"></div>
+    <div class="msub" id="rptSub"></div>
+    <div id="rptContent"></div>
+    <button class="pbtn" onclick="window.print()">🖨️ 印刷・PDF保存</button>
+    <button class="obtn" style="margin-top:8px" onclick="document.getElementById('reportModal').classList.remove('open')">閉じる</button>
+  </div>
+</div>
+
+<!-- RECEIPT MODAL -->
+<div class="modal-overlay" id="receiptModal" onclick="closeModal(event,'receiptModal')">
+  <div class="modal-sheet">
+    <div class="mhandle"></div>
+    <div class="mtitle">📷 レシート画像</div>
+    <img id="receiptModalImg" src="" style="width:100%;border-radius:12px;margin:12px 0">
+    <button class="obtn" onclick="document.getElementById('receiptModal').classList.remove('open')">閉じる</button>
+  </div>
+</div>
+
+<!-- BOTTOM NAV -->
+<div class="bottom-nav">
+  <div class="nav-item active" id="nav-home" onclick="switchView('home')"><span class="nav-icon">🏠</span>ホーム</div>
+  <div class="nav-report"><button class="nav-report-btn" onclick="openReport()"><span style="font-size:1.1rem">📋</span>月次レポート</button></div>
+  <div class="nav-item" id="nav-tax" onclick="switchView('tax')"><span class="nav-icon">📝</span>申告ガイド</div>
+  <div class="nav-item" id="nav-settings" onclick="switchView('settings')"><span class="nav-icon">⚙️</span>設定</div>
+</div>
+
+<script>
+// ===== CONFIG =====
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbzu_V1Vb3D8JuhhdJ1L2ChSlwfodQk-_MJ36i_gz_80zzxJs5MLlrEc7SF_4k8vZtSy/exec';
+const LS_KEY = 'fuyou_v3';
+
+const PRESETS = {
+  income:  ['🥬 野菜販売','🍭 わたあめ','🤝 お手伝い','🌸 花販売','🍳 料理販売','その他'],
+  cogs:    ['🌱 種・苗代','🍬 ザラメ','🌿 肥料代','📦 材料費','その他仕入'],
+  expense: ['⛽ ガソリン','📱 スマホ代','🛍️ 袋・包材','🧤 消耗品','🚃 交通費','📢 宣伝費','その他経費']
+};
+const LABELS = {income:'売上',cogs:'仕入れ',expense:'経費'};
+const SIGNS  = {income:'+',cogs:'−',expense:'−'};
+const TC     = {income:'var(--green)',cogs:'var(--blue)',expense:'var(--amber)'};
+const TCL    = {income:'var(--gl)',cogs:'var(--bl)',expense:'var(--al)'};
+
+let db = {entries:[],settings:{name:'',company:'',limit:108333}};
+let curType = 'income';
+let curYear = new Date().getFullYear();
+let curMonth = new Date().getMonth()+1;
+let receiptUrl = '';
+let selPreset = '';
+let syncTimer = null;
+
+// ===== STORAGE =====
+function loadLocal() {
+  try { return JSON.parse(localStorage.getItem(LS_KEY))||null; } catch { return null; }
+}
+function saveLocal() {
+  try { localStorage.setItem(LS_KEY, JSON.stringify(db)); } catch {}
+}
+
+// ===== CLOUD SYNC =====
+function setSyncBadge(state) {
+  const b = document.getElementById('syncBadge');
+  if (state==='ok')  { b.textContent='☁️ 同期済み'; b.className='sync-badge sync-ok'; }
+  if (state==='ing') { b.textContent='🔄 同期中...'; b.className='sync-badge sync-ing'; }
+  if (state==='err') { b.textContent='⚠️ 同期失敗'; b.className='sync-badge sync-err'; }
+}
+
+async function syncToCloud() {
+  setSyncBadge('ing');
+  const lite = {...db, entries: db.entries.map(({receipt,...e})=>e)};
+  try {
+    const res = await fetch(GAS_URL, {
+      method: 'POST',
+      headers: {'Content-Type': 'text/plain;charset=utf-8'},
+      body: JSON.stringify(lite)
+    });
+    const json = await res.json();
+    if (json.status==='ok') { setSyncBadge('ok'); }
+    else { setSyncBadge('err'); }
+  } catch(e) {
+    setSyncBadge('err');
+  }
+}
+
+async function loadFromCloud() {
+  setSyncBadge('ing');
+  try {
+    // GETはno-corsなしでOK
+    const res = await fetch(GAS_URL+'?t='+Date.now());
+    const text = await res.text();
+    if (text && text !== '{}') {
+      const data = JSON.parse(text);
+      if (data.entries) {
+        if (confirm('クラウドのデータを読み込みますか？\n現在のデータは上書きされます。')) {
+          db = data;
+          saveLocal();
+          renderAll();
+          setSyncBadge('ok');
+          alert('✅ 読み込み完了！');
+        } else {
+          setSyncBadge('ok');
+        }
+      } else {
+        setSyncBadge('err');
+        alert('クラウドにデータがありません');
+      }
+    } else {
+      setSyncBadge('err');
+      alert('クラウドにデータがありません');
+    }
+  } catch(e) {
+    setSyncBadge('err');
+    alert('読み込みに失敗しました');
+  }
+}
+
+function schedulSync() {
+  if (syncTimer) clearTimeout(syncTimer);
+  syncTimer = setTimeout(syncToCloud, 3000);
+}
+
+// ===== INIT =====
+(function init() {
+  const saved = loadLocal();
+  if (saved) db = saved;
+  document.getElementById('entryDate').value = new Date().toISOString().split('T')[0];
+  loadSettings();
+  renderAll();
+  // 起動時にクラウドから最新データを取得
+  loadFromCloud().catch(()=>{});
+})();
+
+// ===== MONTH =====
+function changeMonth(d) {
+  curMonth += d;
+  if (curMonth>12){curMonth=1;curYear++;}
+  if (curMonth<1){curMonth=12;curYear--;}
+  renderAll();
+}
+function mkey() { return `${curYear}-${String(curMonth).padStart(2,'0')}`; }
+function me() { return db.entries.filter(e=>e.date.startsWith(mkey())); }
+function ye() { return db.entries.filter(e=>e.date.startsWith(String(curYear))); }
+function sum(type,arr) { return (arr||me()).filter(e=>e.type===type).reduce((s,e)=>s+e.amount,0); }
+function fmt(n) { return '¥'+Math.max(0,Math.round(n)).toLocaleString('ja-JP'); }
+function reiwa(y) { return y-2018; }
+
+// ===== FUYOU =====
+function renderFuyou() {
+  const income=sum('income'), cogs=sum('cogs');
+  const judged=income-cogs;
+  const limit=db.settings.limit||108333;
+  const pct=Math.min(100,Math.max(0,(judged/limit)*100));
+  const card=document.getElementById('fuyouCard');
+  const badge=document.getElementById('fuyouBadge');
+  const fill=document.getElementById('gaugeFill');
+  const note=document.getElementById('gaugeNote');
+  const amt=document.getElementById('fuyouAmt');
+  let st,badgeTxt,noteColor='var(--muted)';
+  if(judged<=0){st='safe';badgeTxt='✅ 安全圏';note.textContent='仕入れが売上を上回っています';}
+  else if(pct<70){st='safe';badgeTxt='✅ 安全圏';note.textContent=`上限まであと ${fmt(limit-judged)} の余裕`;}
+  else if(pct<90){st='warning';badgeTxt='⚠️ 注意';note.textContent=`上限の${Math.round(pct)}%に達しています`;}
+  else if(judged<=limit){st='warning';badgeTxt='🔶 ギリギリ';note.textContent=`残り ${fmt(limit-judged)} — 慎重に！`;}
+  else{st='danger';badgeTxt='🚨 超過！';note.textContent=`${fmt(judged-limit)} オーバー！パパさんに相談を`;noteColor='var(--red)';}
+  note.style.color=noteColor;
+  const stC={safe:'var(--green)',warning:'var(--amber)',danger:'var(--red)'}[st];
+  const stCl={safe:'var(--gl)',warning:'var(--al)',danger:'var(--rl)'}[st];
+  const fillGrad={safe:'linear-gradient(90deg,#4ade80,#2d9a6b)',warning:'linear-gradient(90deg,#fbbf24,#d97706)',danger:'linear-gradient(90deg,#f87171,#e05252)'}[st];
+  card.className='fuyou-card '+st;
+  badge.textContent=badgeTxt; badge.style.background=stCl; badge.style.color=stC;
+  fill.style.width=pct+'%'; fill.style.background=fillGrad;
+  amt.textContent=fmt(Math.max(0,judged)); amt.style.color=stC;
+  document.getElementById('si').textContent=fmt(sum('income'));
+  document.getElementById('sc').textContent=fmt(sum('cogs'));
+  document.getElementById('se').textContent=fmt(sum('expense'));
+}
+
+// ===== HISTORY =====
+function renderHistory() {
+  const items=[...me()].sort((a,b)=>b.date.localeCompare(a.date));
+  const el=document.getElementById('historyList');
+  if(!items.length){el.innerHTML='<div class="hist-empty">まだ記録がありません 📝<br>上のフォームから入力してください</div>';return;}
+  el.innerHTML=items.map(e=>{
+    const hasR=!!e.receipt;
+    return `<div class="hist-item">
+      <div class="hicon" style="background:${TCL[e.type]};cursor:${hasR?'pointer':'default'}" onclick="${hasR?`showReceipt('${e.id}')`:''}">${hasR?'🧾':{income:'💰',cogs:'📦',expense:'🚗'}[e.type]}</div>
+      <div class="hinfo">
+        <div class="hname">${e.name}${e.note?' — '+e.note:''}</div>
+        <div class="hmeta">${e.date}　${LABELS[e.type]}${hasR?' 📷':''}</div>
+      </div>
+      <div class="hamt" style="color:${TC[e.type]}">${SIGNS[e.type]}¥${e.amount.toLocaleString()}</div>
+      <button class="hdel" onclick="deleteEntry(${e.id})">✕</button>
+    </div>`;
+  }).join('');
+}
+
+// ===== TAX SUMMARY =====
+function renderTaxSummary() {
+  const a=sum('income',ye()),b=sum('cogs',ye()),c=sum('expense',ye());
+  document.getElementById('ts-a').textContent=fmt(a);
+  document.getElementById('ts-b').textContent=fmt(b);
+  document.getElementById('ts-c').textContent=fmt(c);
+  document.getElementById('ts-p').textContent=fmt(a-b-c);
+}
+
+// ===== PRESETS =====
+function renderPresets() {
+  document.getElementById('presetChips').innerHTML=PRESETS[curType].map(n=>
+    `<div class="chip" onclick="selectPreset(this,'${n}')">${n}</div>`
+  ).join('');
+}
+function selectPreset(el,name) {
+  document.querySelectorAll('.chip').forEach(c=>c.style.cssText='');
+  el.style.background=`var(--${curType==='income'?'green':curType==='cogs'?'blue':'amber'})`;
+  el.style.color='white';
+  selPreset=name;
+}
+
+// ===== TYPE =====
+function setType(type) {
+  curType=type;
+  ['income','cogs','expense'].forEach(t=>{
+    const el=document.getElementById('tt-'+t);
+    el.className='type-tab'+(t===type?` a${t[0]}`:'');
+  });
+  const hints={
+    income:'<strong>売上</strong>：野菜・わたあめ・お手伝いなど、お客さんからもらったお金',
+    cogs:'<strong>仕入れ</strong>：種・苗・ザラメ・袋など、商品を作るために買ったもの',
+    expense:'<strong>経費</strong>：ガソリン・スマホ代など（健保によっては判定に含まれる場合あり）'
+  };
+  const hb=document.getElementById('hintBox');
+  hb.className=`hint-box h${type[0]}`;
+  hb.innerHTML=hints[type];
+  const labels={income:'💰 売上を記録する',cogs:'📦 仕入れを記録する',expense:'🚗 経費を記録する'};
+  const btn=document.getElementById('btnAdd');
+  btn.style.background={income:'var(--green)',cogs:'var(--blue)',expense:'var(--amber)'}[type];
+  btn.textContent=labels[type];
+  selPreset='';
+  renderPresets();
+}
+
+// ===== RECEIPT =====
+function handleReceipt(ev) {
+  const f=ev.target.files[0]; if(!f) return;
+  const r=new FileReader();
+  r.onload=e=>{
+    receiptUrl=e.target.result;
+    document.getElementById('rimg').src=receiptUrl;
+    document.getElementById('rpreview').style.display='block';
+  };
+  r.readAsDataURL(f); ev.target.value='';
+}
+function clearReceipt() { receiptUrl=''; document.getElementById('rpreview').style.display='none'; }
+function showReceipt(id) {
+  const e=db.entries.find(e=>e.id==id);
+  if(!e?.receipt) return;
+  document.getElementById('receiptModalImg').src=e.receipt;
+  document.getElementById('receiptModal').classList.add('open');
+}
+
+// ===== ADD / DELETE =====
+function addEntry() {
+  const amount=parseInt(document.getElementById('entryAmount').value)||0;
+  const date=document.getElementById('entryDate').value;
+  const note=document.getElementById('entryNote').value.trim();
+  if(!amount||amount<=0){alert('金額を入力してください');return;}
+  if(!date){alert('日付を入力してください');return;}
+  const name=selPreset||note||LABELS[curType];
+  const entry={id:Date.now(),type:curType,amount,date,name,note};
+  if(receiptUrl) entry.receipt=receiptUrl;
+  db.entries.push(entry);
+  saveLocal();
+  schedulSync();
+  document.getElementById('entryAmount').value='';
+  document.getElementById('entryNote').value='';
+  selPreset=''; clearReceipt();
+  document.querySelectorAll('.chip').forEach(c=>c.style.cssText='');
+  renderAll();
+}
+function deleteEntry(id) {
+  if(!confirm('この記録を削除しますか？')) return;
+  db.entries=db.entries.filter(e=>e.id!==id);
+  saveLocal(); schedulSync(); renderAll();
+}
+
+// ===== REPORT =====
+function openReport() {
+  const income=sum('income'),cogs=sum('cogs'),expense=sum('expense');
+  const judged=income-cogs, profit=income-cogs-expense;
+  const limit=db.settings.limit||108333, over=judged>limit;
+  const r=reiwa(curYear), name=db.settings.name||'（氏名未設定）';
+  document.getElementById('rptTitle').textContent=`📋 ${curMonth}月 職場提出用レポート`;
+  document.getElementById('rptSub').textContent=`令和${r}年（${curYear}年）${curMonth}月分　${name}`;
+  const Row=(k,v,style='')=>`<div class="rrow"><span class="rkey">${k}</span><span class="rval" style="${style}">${v}</span></div>`;
+  document.getElementById('rptContent').innerHTML=`
+    ${Row('報告者',name)}
+    ${db.settings.company?Row('提出先',db.settings.company):''}
+    ${Row('対象月',`令和${r}年 ${curMonth}月`)}
+    ${Row('💰 売上合計（A）',fmt(income),'color:var(--green)')}
+    ${Row('📦 仕入れ合計（B）',fmt(cogs),'color:var(--blue)')}
+    <div class="${over?'rdng':'rhl'}"><span style="color:${over?'var(--red)':'var(--green)'};font-weight:700">🛡️ 判定用所得（A−B）</span><span style="font-family:'Nunito',sans-serif;font-weight:900;font-size:1.1rem;color:${over?'var(--red)':'var(--green)'}">${fmt(judged)}</span></div>
+    ${Row('🚗 経費合計（C）',fmt(expense),'color:var(--amber)')}
+    ${Row('📝 確定申告用所得（A−B−C）',fmt(profit))}
+    ${Row('扶養上限（月額）',fmt(limit))}
+    ${Row('判定結果',over?'🚨 上限超過':'✅ 上限内',`color:${over?'var(--red)':'var(--green)'}`)}
+    ${over?`<div class="rwarn">⚠️ 今月の判定用所得が扶養上限を超えています。健保組合への確認・相談をお勧めします。</div>`:''}
+    <div class="rwarn" style="background:#f0f4ff;color:#3b5bdb">※ 仕入れ（B）を差し引ける基準は健保組合によって異なります。事前に確認のうえ提出してください。</div>
+  `;
+  document.getElementById('reportModal').classList.add('open');
+}
+
+// ===== MODAL =====
+function closeModal(e,id) { if(e.target.id===id) document.getElementById(id).classList.remove('open'); }
+
+// ===== SETTINGS =====
+function loadSettings() {
+  document.getElementById('sName').value=db.settings.name||'';
+  document.getElementById('sCompany').value=db.settings.company||'';
+  document.getElementById('sLimit').value=db.settings.limit||108333;
+}
+function saveSettings() {
+  db.settings.name=document.getElementById('sName').value;
+  db.settings.company=document.getElementById('sCompany').value;
+  db.settings.limit=parseInt(document.getElementById('sLimit').value)||108333;
+  saveLocal(); schedulSync(); renderAll();
+}
+
+// ===== EXPORT =====
+function exportCSV() {
+  let csv='日付,種別,品目,金額,メモ\n';
+  me().forEach(e=>{csv+=`${e.date},${LABELS[e.type]},"${e.name}",${e.amount},"${e.note||''}"\n`;});
+  const blob=new Blob(['\uFEFF'+csv],{type:'text/csv'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+  a.download=`収支_${mkey()}.csv`; a.click();
+}
+function clearAll() {
+  if(!confirm('全データを削除しますか？')) return;
+  db.entries=[]; saveLocal(); schedulSync(); renderAll();
+}
+
+// ===== VIEW =====
+function switchView(v) {
+  document.querySelectorAll('.view').forEach(el=>el.classList.remove('active'));
+  document.getElementById('view-'+v).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(el=>el.classList.remove('active'));
+  const nav=document.getElementById('nav-'+v);
+  if(nav) nav.classList.add('active');
+  if(v==='tax') renderTaxSummary();
+}
+
+// ===== RENDER ALL =====
+function renderAll() {
+  document.getElementById('monthLabel').textContent=`令和${reiwa(curYear)}年 ${curMonth}月`;
+  renderFuyou(); renderHistory(); renderPresets();
+}
+</script>
+
+<script>
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.getRegistrations().then(regs=>{
+    regs.forEach(r=>r.unregister());
+  }).then(()=>{
+    navigator.serviceWorker.register('./sw.js');
+  });
+}
+</script>
+</body>
+</html>
